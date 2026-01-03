@@ -1,0 +1,29 @@
+# تنظیمات سرور DNS Tunnel (سرور خارج)
+# این فایل را در سرور خارج از ایران قرار دهید
+
+server:
+  # پورت گوش دادن WebSocket
+  listen: ":8443"
+
+  # مسیر گواهی TLS (برای امنیت بیشتر)
+  # اگر خالی باشد، از HTTP استفاده می‌شود (فقط برای تست)
+  tls_cert: ""
+  tls_key: ""
+
+  # رمز عبور مشترک بین کلاینت و سرور
+  # حتماً این مقدار را تغییر دهید!
+  password: "your-secure-password-here"
+
+  # Salt برای رمزنگاری (32 کاراکتر hex)
+  # برای تولید salt جدید: ./server generate-salt
+  salt: "a1b2c3d4e5f6789012345678901234ab"
+
+dns:
+  # سرورهای DNS upstream
+  upstreams:
+    - "8.8.8.8:53"      # Google DNS
+    - "1.1.1.1:53"      # Cloudflare DNS
+    - "9.9.9.9:53"      # Quad9 DNS
+
+  # تایم‌اوت برای درخواست‌های DNS
+  timeout: 5s
