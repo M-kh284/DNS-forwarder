@@ -34,7 +34,7 @@ type Config struct {
 }
 
 var (
-	configFile = flag.String("config", "configs/server.yaml", "مسیر فایل تنظیمات")
+	configFile = flag.String("config", "configs/upstream.yaml", "مسیر فایل تنظیمات")
 	config     Config
 	encryptor  *crypto.Encryptor
 	dnsClient  *dns.Client

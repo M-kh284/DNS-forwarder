@@ -56,7 +56,7 @@ type CacheEntry struct {
 }
 
 var (
-	configFile     = flag.String("config", "configs/client.yaml", "مسیر فایل تنظیمات")
+	configFile     = flag.String("config", "configs/local.yaml", "مسیر فایل تنظیمات")
 	config         Config
 	encryptor      *crypto.Encryptor
 	wsConn         *websocket.Conn

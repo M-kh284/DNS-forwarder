@@ -5,18 +5,19 @@
 ## معماری
 
 ```
-┌─────────────────┐        ┌────────────────────┐   WSS Tunnel   ┌──────────────┐
-│   کلاینت‌های     │   DNS   │   سرور ایران       │  ─────────────► │  سرور خارج   │
-│   محلی          │ ──────► │   (dns-client)     │  ◄───────────── │  (dns-server)│
-│                 │         │   Port 53          │                │  Port 8443   │
+┌─────────────────┐        ┌────────────────────┐   WSS Tunnel   ┌──────────────┐       ┌──────────────┐
+│   کلاینت‌های     │   DNS   │   سرور ایران       │  ─────────────► │  سرور خارج   │ ────► │  8.8.8.8     │
+│   شبکه          │ ──────► │   (dns-local)      │  ◄───────────── │ (dns-upstream)│ ◄──── │  1.1.1.1     │
+│   PC, موبایل    │         │   Port 53          │                │  Port 8443   │       └──────────────┘
 └─────────────────┘        └────────────────────┘                └──────────────┘
-                                                                        │
-                                                                        ▼
-                                                                 ┌──────────────┐
-                                                                 │  8.8.8.8     │
-                                                                 │  1.1.1.1     │
-                                                                 └──────────────┘
 ```
+
+## اجزا
+
+| نام | محل نصب | توضیح |
+|-----|---------|-------|
+| `dns-local` | سرور ایران | DNS Server محلی - کلاینت‌های شبکه به این وصل می‌شوند |
+| `dns-upstream` | سرور خارج | درخواست‌ها را از تانل دریافت و به DNS واقعی ارسال می‌کند |
 
 ## ویژگی‌ها
 
@@ -31,7 +32,7 @@
 ## نیازمندی‌ها
 
 - Go 1.21 یا بالاتر
-- دسترسی root برای پورت 53 (در کلاینت)
+- دسترسی root برای پورت 53 (در سرور ایران)
 
 ## نصب
 
@@ -55,11 +56,11 @@ make build
 make generate-salt
 ```
 
-این مقدار را در هر دو فایل تنظیمات (سرور و کلاینت) قرار دهید.
+این مقدار را در هر دو فایل تنظیمات قرار دهید.
 
-### ۲. تنظیم سرور (خارج از ایران)
+### ۲. تنظیم سرور خارج
 
-فایل `configs/server.yaml` را ویرایش کنید:
+فایل `configs/upstream.yaml` را ویرایش کنید:
 
 ```yaml
 server:
@@ -73,14 +74,14 @@ dns:
     - "1.1.1.1:53"
 ```
 
-### ۳. تنظیم کلاینت (داخل ایران)
+### ۳. تنظیم سرور ایران
 
-فایل `configs/client.yaml` را ویرایش کنید:
+فایل `configs/local.yaml` را ویرایش کنید:
 
 ```yaml
 client:
-  dns_listen: "127.0.0.1:53"
-  server_url: "ws://YOUR_SERVER_IP:8443/dns"
+  dns_listen: "0.0.0.0:53"
+  server_url: "ws://YOUR_ABROAD_SERVER_IP:8443/dns"
   password: "your-secure-password"
   salt: "your-generated-salt"
 
@@ -91,24 +92,18 @@ cache:
 
 ## اجرا
 
-### سرور (خارج)
+### ۱. ابتدا سرور خارج
 
 ```bash
-# با go run
-make run-server
-
-# یا مستقیم
-./build/dns-server -config configs/server.yaml
+# روی سرور خارج از ایران
+./build/dns-upstream -config configs/upstream.yaml
 ```
 
-### کلاینت (ایران)
+### ۲. سپس سرور ایران
 
 ```bash
-# با go run (نیاز به sudo برای پورت 53)
-make run-client
-
-# یا مستقیم
-sudo ./build/dns-client -config configs/client.yaml
+# روی سرور داخل ایران
+sudo ./build/dns-local -config configs/local.yaml
 ```
 
 ## استفاده با TLS (توصیه شده)
@@ -119,7 +114,7 @@ sudo ./build/dns-client -config configs/client.yaml
 make generate-cert
 ```
 
-### ۲. تنظیم سرور
+### ۲. تنظیم سرور خارج
 
 ```yaml
 server:
@@ -128,20 +123,20 @@ server:
   tls_key: "certs/server.key"
 ```
 
-### ۳. تنظیم کلاینت
+### ۳. تنظیم سرور ایران
 
 ```yaml
 client:
-  server_url: "wss://YOUR_SERVER_IP:8443/dns"
+  server_url: "wss://YOUR_ABROAD_SERVER_IP:8443/dns"
   insecure_skip_tls: true  # برای گواهی خودامضا
 ```
 
 ## تست
 
 ```bash
-# بعد از راه‌اندازی کلاینت
-dig @127.0.0.1 google.com
-nslookup google.com 127.0.0.1
+# روی سرور ایران یا هر کلاینت متصل به آن
+dig @SERVER_IRAN_IP google.com
+nslookup google.com SERVER_IRAN_IP
 ```
 
 ## ساخت برای پلتفرم‌های مختلف
@@ -162,9 +157,9 @@ make build-windows
 ```
 .
 ├── cmd/
-│   ├── client/          # کد کلاینت (سرور ایران)
+│   ├── local/           # سرور ایران (کلاینت‌ها به این وصل می‌شوند)
 │   │   └── main.go
-│   └── server/          # کد سرور (سرور خارج)
+│   └── upstream/        # سرور خارج (به DNS واقعی وصل می‌شود)
 │       └── main.go
 ├── pkg/
 │   ├── crypto/          # رمزنگاری AES-GCM
@@ -172,34 +167,41 @@ make build-windows
 │   └── protocol/        # پروتکل پیام‌رسانی
 │       └── message.go
 ├── configs/
-│   ├── client.yaml      # تنظیمات کلاینت
-│   └── server.yaml      # تنظیمات سرور
+│   ├── local.yaml       # تنظیمات سرور ایران
+│   └── upstream.yaml    # تنظیمات سرور خارج
 ├── Makefile
 ├── go.mod
 └── README.md
 ```
+
+## نحوه کار
+
+1. کلاینت‌های شبکه (PC، موبایل) درخواست DNS را به سرور ایران ارسال می‌کنند
+2. سرور ایران درخواست را رمزنگاری کرده و از طریق تانل WebSocket به سرور خارج ارسال می‌کند
+3. سرور خارج درخواست را رمزگشایی کرده و به DNS واقعی (مثل Google DNS) ارسال می‌کند
+4. پاسخ از همان مسیر برمی‌گردد
 
 ## امنیت
 
 - از رمز عبور قوی استفاده کنید
 - از TLS استفاده کنید
 - Salt را تغییر دهید
-- دسترسی به سرور را محدود کنید
+- دسترسی به سرور خارج را محدود کنید
 
 ## عیب‌یابی
 
 ### خطای "permission denied" برای پورت 53
 
 ```bash
-sudo ./dns-client -config configs/client.yaml
+sudo ./dns-local -config configs/local.yaml
 # یا
-sudo setcap cap_net_bind_service=+ep ./dns-client
+sudo setcap cap_net_bind_service=+ep ./dns-local
 ```
 
 ### خطای اتصال به سرور
 
 1. فایروال را بررسی کنید
-2. پورت 8443 باز باشد
+2. پورت 8443 روی سرور خارج باز باشد
 3. آدرس سرور درست باشد
 
 ### کش DNS سیستم‌عامل
