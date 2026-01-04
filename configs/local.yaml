@@ -11,7 +11,7 @@ client:
   # آدرس سرور خارج (upstream)
   # ws:// برای بدون TLS (فقط تست)
   # wss:// برای با TLS (توصیه شده)
-  server_url: "ws://YOUR_ABROAD_SERVER_IP:8443/dns"
+  server_url: "ws://185.92.182.28:8443/dns"
 
   # رمز عبور (باید با سرور خارج یکی باشد)
   password: "your-secure-password-here"
